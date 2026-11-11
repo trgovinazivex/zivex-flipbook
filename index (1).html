@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Živex – digitalni letak</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#123b28;background:radial-gradient(circle at top,#f3f9dd,#d5e9b0 58%,#9cc46b);min-height:100vh}header{max-width:1200px;margin:auto;padding:22px 16px 6px;display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:clamp(19px,3vw,29px);margin:0}.shell{max-width:1200px;margin:0 auto;padding:12px 12px 32px}.stage{display:flex;justify-content:center;align-items:center;min-height:55vh;overflow:hidden}.page{background:white;box-shadow:inset -5px 0 14px #00000013;overflow:hidden}.page canvas{width:100%;height:100%;display:block}.controls{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;padding:18px 0}button{background:#087d39;color:white;border:0;border-radius:9px;padding:12px 15px;font-weight:700;cursor:pointer}button:disabled{opacity:.4;cursor:default}button:hover:not(:disabled){background:#075e2d}#counter{min-width:85px;text-align:center}#status{text-align:center;font-size:14px;min-height:24px}footer{text-align:center;font-size:12px;padding:12px;color:#35543e}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+</head>
+<body>
+<header><h1>ŽIVEX · Digitalni letak</h1><span>Prelistaj ugodnosti</span></header>
+<main class="shell"><div id="status">Nalagam letak …</div><div class="stage"><div id="book"></div></div><div class="controls"><button id="prev" disabled>❮ Nazaj</button><span id="counter">–</span><button id="next" disabled>Naprej ❯</button><button id="sound">🔊 Zvok: vklopljen</button><button id="fullscreen">⛶ Cel zaslon</button></div></main>
+<footer>Živex · Vaše okolje naj bo lepše</footer>
+<script>
+(async()=>{
+const status=document.getElementById('status'),counter=document.getElementById('counter'),prev=document.getElementById('prev'),next=document.getElementById('next'),sound=document.getElementById('sound');
+let flip=null,soundOn=true,audioCtx=null;
+function rustle(){if(!soundOn)return;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const length=Math.floor(audioCtx.sampleRate*.19),buffer=audioCtx.createBuffer(1,length,audioCtx.sampleRate),d=buffer.getChannelData(0);for(let i=0;i<length;i++){let env=Math.pow(1-i/length,1.6);d[i]=(Math.random()*2-1)*env*.22;}const src=audioCtx.createBufferSource(),filter=audioCtx.createBiquadFilter(),gain=audioCtx.createGain();filter.type='highpass';filter.frequency.value=650;gain.gain.value=.28;src.buffer=buffer;src.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);src.start();}catch(e){console.warn(e)}}
+try{
+if(!window.pdfjsLib||!window.St||!St.PageFlip)throw Error('Knjižnica za listanje se ni naložila. Preveri internetno povezavo.');
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const response=await fetch('letak.pdf?v='+Date.now(),{cache:'no-store'});if(!response.ok)throw Error('Datoteke letak.pdf ni mogoče odpreti ('+response.status+').');
+const pdf=await pdfjsLib.getDocument({data:await response.arrayBuffer()}).promise;
+const first=await pdf.getPage(1),vp=first.getViewport({scale:1});const ratio=vp.width/vp.height;
+const pageWidth=440,pageHeight=Math.round(pageWidth/ratio),book=document.getElementById('book');
+for(let i=1;i<=pdf.numPages;i++){
+status.textContent='Pripravljam strani: '+i+' / '+pdf.numPages;
+const page=await pdf.getPage(i),viewport=page.getViewport({scale:Math.min(2.1,1200/vp.width)}),canvas=document.createElement('canvas');canvas.width=Math.round(viewport.width);canvas.height=Math.round(viewport.height);await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+const wrapper=document.createElement('div');wrapper.className='page';if(i===1||i===pdf.numPages)wrapper.dataset.density='hard';wrapper.appendChild(canvas);book.appendChild(wrapper);
+}
+flip=new St.PageFlip(book,{width:pageWidth,height:pageHeight,size:'stretch',minWidth:180,maxWidth:pageWidth,minHeight:Math.round(180/ratio),maxHeight:pageHeight,showCover:true,drawShadow:true,maxShadowOpacity:.42,flippingTime:900,usePortrait:true,mobileScrollSupport:false,autoSize:true});
+flip.loadFromHTML(document.querySelectorAll('.page'));
+function update(){const p=flip.getCurrentPageIndex();counter.textContent=(p+1)+' / '+pdf.numPages;prev.disabled=p===0;next.disabled=p>=pdf.numPages-1;}
+flip.on('flip',()=>{rustle();update()});flip.on('init',update);update();status.textContent='Strani lahko obračaš z miško, dotikom ali puščicama na tipkovnici.';
+prev.onclick=()=>flip.flipPrev();next.onclick=()=>flip.flipNext();
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')flip.flipNext();if(e.key==='ArrowLeft')flip.flipPrev()});
+sound.onclick=()=>{soundOn=!soundOn;sound.textContent=soundOn?'🔊 Zvok: vklopljen':'🔇 Zvok: izklopljen';if(soundOn){audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}};
+document.getElementById('fullscreen').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen?.()};
+}catch(err){status.textContent='Napaka: '+err.message;console.error(err)}
+})();
+</script>
+</body></html>
