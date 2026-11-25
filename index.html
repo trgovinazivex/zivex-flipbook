@@ -41,4 +41,35 @@ document.getElementById('fullscreen').onclick=()=>{if(document.fullscreenElement
 }catch(err){status.textContent='Napaka: '+err.message;console.error(err)}
 })();
 </script>
-</body></html>
+
+<style>
+.zivex-pdf-gumb {
+    text-align: center;
+    margin: 10px auto 25px;
+}
+.zivex-pdf-gumb a {
+    display: inline-block;
+    background: #087d39;
+    color: #ffffff;
+    padding: 13px 28px;
+    border-radius: 9px;
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: 0.2s;
+}
+.zivex-pdf-gumb a:hover {
+    background: #075e2d;
+    color: #ffffff;
+}
+</style>
+
+<div class="zivex-pdf-gumb">
+    <a href="letak.pdf" target="_blank" rel="noopener">
+        🔍 Povečaj letak – odpri PDF
+    </a>
+</div>
+
+</body>
+</html>
